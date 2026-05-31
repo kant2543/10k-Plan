@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>10K Treadmill Plan v2 — 4 Days/Week</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans Thai',sans-serif;background:#f8f8f6;color:#1a1a1a;padding:20px}
+h1{font-size:18px;font-weight:500;margin-bottom:4px}
+.subtitle{font-size:13px;color:#666;margin-bottom:20px}
+
+.schedule-bar{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:20px}
+.day-box{background:#fff;border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px;text-align:center}
+.day-box.active{border-color:#1D9E75}
+.day-name{font-size:11px;color:#888;margin-bottom:3px}
+.day-session{font-size:11px;font-weight:500}
+.day-box.rest .day-session{color:#aaa}
+.day-box.easy .day-session{color:#0F6E56}
+.day-box.tempo .day-session{color:#185FA5}
+.day-box.long .day-session{color:#3C3489}
+
+.speed-ref{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}
+.ref-card{background:#fff;border-radius:8px;border:0.5px solid #e0e0e0;padding:10px 12px;text-align:center}
+.ref-label{font-size:11px;color:#888;margin-bottom:3px}
+.ref-val{font-size:15px;font-weight:500}
+.ref-sub{font-size:10px;color:#888;margin-top:1px}
+
+.wk-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.wk-tab{padding:6px 12px;border-radius:8px;border:0.5px solid #ddd;font-size:12px;cursor:pointer;background:#fff;color:#555;font-family:inherit}
+.wk-tab:hover{background:#f0f0ee}
+.wk-tab.active{background:#1D9E75;border-color:#1D9E75;color:#fff}
+.wk-tab.race-tab{border-color:#7F77DD;color:#7F77DD}
+.wk-tab.race-tab.active{background:#7F77DD;color:#fff}
+.wk-tab.recovery-tab{border-color:#EF9F27;color:#854F0B}
+.wk-tab.recovery-tab.active{background:#EF9F27;color:#fff}
+
+.session-area{display:none}
+.session-area.active{display:block}
+
+.week-summary{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;gap:20px;flex-wrap:wrap}
+.ws-item{font-size:12px;color:#888}.ws-item span{font-weight:500;color:#1a1a1a}
+
+.session-card{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;margin-bottom:10px;overflow:hidden}
+.sc-header{padding:10px 14px;border-bottom:0.5px solid #eee;display:flex;align-items:center;gap:10px}
+.sc-day{font-size:11px;font-weight:500;color:#fff;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.sc-day.easy{background:#1D9E75}
+.sc-day.tempo{background:#185FA5}
+.sc-day.interval{background:#EF9F27}
+.sc-day.long{background:#7F77DD}
+.sc-day.rest{background:#aaa}
+.sc-title{font-size:14px;font-weight:500;flex:1}
+.sc-summary{font-size:12px;color:#888}
+.sc-body{padding:10px 14px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;color:#888;font-weight:400;padding:3px 8px 6px 0;border-bottom:0.5px solid #eee}
+td{padding:5px 8px 5px 0;border-bottom:0.5px solid #f0f0f0;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.step-name{font-weight:500;font-size:12px}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500}
+.b-easy{background:#E1F5EE;color:#0F6E56}
+.b-tempo{background:#E6F1FB;color:#185FA5}
+.b-interval{background:#FAEEDA;color:#854F0B}
+.b-long{background:#EEEDFE;color:#3C3489}
+.b-fast{background:#FCEBEB;color:#A32D2D}
+.b-rest{background:#f4f4f2;color:#666}
+.tip-box{margin-top:8px;padding:8px 10px;background:#f8f8f6;border-radius:8px;font-size:11px;color:#666;line-height:1.6;border-left:2px solid #ccc}
+
+.overview-table{width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:12px;overflow:hidden;border:0.5px solid #e0e0e0;margin-bottom:20px}
+.overview-table th{background:#f4f4f2;padding:8px 10px;text-align:left;font-weight:500;color:#555;border-bottom:0.5px solid #e0e0e0}
+.overview-table td{padding:7px 10px;border-bottom:0.5px solid #f0f0f0;vertical-align:middle}
+.overview-table tr:last-child td{border-bottom:none}
+.phase-badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:500}
+.ph-base{background:#E1F5EE;color:#0F6E56}
+.ph-recovery{background:#FAEEDA;color:#854F0B}
+.ph-build{background:#E6F1FB;color:#185FA5}
+.ph-taper{background:#EEEDFE;color:#3C3489}
+.ph-race{background:#FCF0FF;color:#6B21A8}
+.current-wk{background:#FFFBEB}
+
+@media(max-width:500px){
+  .speed-ref{grid-template-columns:repeat(2,1fr)}
+  .schedule-bar{grid-template-columns:repeat(4,1fr)}
+}
+</style>
+</head>
+<body>
+<h1>🏃 10K Treadmill Plan — 4 Days/Week</h1>
+<div class="subtitle">Race Day: 19 July · Target: ~70–75 min · Based on current pace 7:58/km</div>
+
+<div class="schedule-bar">
+  <div class="day-box easy active"><div class="day-name">MON</div><div class="day-session">Easy</div></div>
+  <div class="day-box tempo active"><div class="day-name">TUE</div><div class="day-session">Tempo/Interval</div></div>
+  <div class="day-box rest"><div class="day-name">WED</div><div class="day-session">REST</div></div>
+  <div class="day-box easy active"><div class="day-name">THU</div><div class="day-session">Easy</div></div>
+  <div class="day-box rest"><div class="day-name">FRI</div><div class="day-session">REST</div></div>
+  <div class="day-box long active"><div class="day-name">SAT</div><div class="day-session">Long run</div></div>
+  <div class="day-box rest"><div class="day-name">SUN</div><div class="day-session">REST</div></div>
+</div>
+
+<div class="speed-ref">
+  <div class="ref-card"><div class="ref-label">Easy run</div><div class="ref-val" style="color:#0F6E56">7.0</div><div class="ref-sub">km/h · 8:34/km</div></div>
+  <div class="ref-card"><div class="ref-label">Tempo</div><div class="ref-val" style="color:#185FA5">8.5</div><div class="ref-sub">km/h · 7:03/km</div></div>
+  <div class="ref-card"><div class="ref-label">Interval fast</div><div class="ref-val" style="color:#854F0B">9.5–10.0</div><div class="ref-sub">km/h · 6:00–6:19/km</div></div>
+  <div class="ref-card"><div class="ref-label">Race target</div><div class="ref-val" style="color:#3C3489">8.5</div><div class="ref-sub">km/h · sub-70 min</div></div>
+</div>
+
+<!-- 8-week overview -->
+<table class="overview-table">
+  <thead><tr><th>Week</th><th>Phase</th><th>Mon</th><th>Tue</th><th>Thu</th><th>Sat (Long)</th><th>Total km</th></tr></thead>
+  <tbody>
+    <tr><td>W1</td><td><span class="phase-badge ph-base">Base</span></td><td>Easy 3km</td><td>Easy 3km</td><td>Easy 3km</td><td>5km</td><td>14km</td></tr>
+    <tr class="current-wk"><td><b>W2 ←</b></td><td><span class="phase-badge ph-base">Base</span></td><td>Easy 4km</td><td>Easy+Strides</td><td>Easy 4km</td><td>6km</td><td>18km</td></tr>
+    <tr><td>W3</td><td><span class="phase-badge ph-base">Base</span></td><td>Easy 4km</td><td>Tempo</td><td>Easy 4km</td><td>7km</td><td>20km</td></tr>
+    <tr><td>W4</td><td><span class="phase-badge ph-recovery">Recovery</span></td><td>Easy 3km</td><td>Easy+Strides</td><td>Easy 3km</td><td>5km</td><td>14km</td></tr>
+    <tr><td>W5</td><td><span class="phase-badge ph-build">Build</span></td><td>Easy 5km</td><td>Interval</td><td>Easy 5km</td><td>8km</td><td>23km</td></tr>
+    <tr><td>W6</td><td><span class="phase-badge ph-build">Build 💪</span></td><td>Easy 5km</td><td>Tempo (long)</td><td>Easy 5km</td><td>10km</td><td>25km</td></tr>
+    <tr><td>W7</td><td><span class="phase-badge ph-taper">Taper</span></td><td>Easy 4km</td><td>Interval (short)</td><td>Easy 3km</td><td>7km</td><td>18km</td></tr>
+    <tr><td>W8</td><td><span class="phase-badge ph-race">Race Week</span></td><td>Easy 3km</td><td>Easy 2km</td><td>REST</td><td>🏁 Race 10K</td><td>15km</td></tr>
+  </tbody>
+</table>
+
+<div class="wk-tabs" id="tabs"></div>
+<div id="sessions"></div>
+
+<script>
+const plan=[
+{w:1,label:"W1",type:"base",sessions:[
+  {day:"MON",dtype:"easy",title:"Easy run",km:3,min:26,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"3km",dur:"26 min",b:"b-easy"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:"Week 1 — focus on finishing all 4 days consistently, not pace"},
+  {day:"TUE",dtype:"easy",title:"Easy run",km:3,min:26,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"3km",dur:"26 min",b:"b-easy"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:"Same as Monday — body is still adapting"},
+  {day:"THU",dtype:"easy",title:"Easy run",km:3,min:26,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"3km",dur:"26 min",b:"b-easy"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:""},
+  {day:"SAT",dtype:"long",title:"Long run",km:5,min:43,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Long run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"5km",dur:"43 min",b:"b-long"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.5km",dur:"7 min",b:"b-rest"},
+  ],tip:"If tired, drop to 6.5 km/h (9:13/km) — completing 5km without stopping is the only goal"},
+]},
+{w:2,label:"W2 ★",type:"base",sessions:[
+  {day:"MON",dtype:"easy",title:"Easy run",km:4,min:34,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"4km",dur:"34 min",b:"b-easy"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:"1% incline throughout — mimics outdoor air resistance"},
+  {day:"TUE",dtype:"easy",title:"Easy run + Strides",km:4,min:40,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"4km",dur:"34 min",b:"b-easy"},
+    {n:"Stride 1",spd:"10.0 km/h",pace:"6:00/km",inc:"0%",dist:"~50m",dur:"18 sec",b:"b-fast"},
+    {n:"Walk rest",spd:"4.0 km/h",pace:"15:00/km",inc:"0%",dist:"—",dur:"30 sec",b:"b-rest"},
+    {n:"Stride 2",spd:"10.0 km/h",pace:"6:00/km",inc:"0%",dist:"~50m",dur:"18 sec",b:"b-fast"},
+    {n:"Walk rest",spd:"4.0 km/h",pace:"15:00/km",inc:"0%",dist:"—",dur:"30 sec",b:"b-rest"},
+    {n:"Stride 3",spd:"10.0 km/h",pace:"6:00/km",inc:"0%",dist:"~50m",dur:"18 sec",b:"b-fast"},
+    {n:"Walk rest",spd:"4.0 km/h",pace:"15:00/km",inc:"0%",dist:"—",dur:"30 sec",b:"b-rest"},
+    {n:"Stride 4",spd:"10.0 km/h",pace:"6:00/km",inc:"0%",dist:"~50m",dur:"18 sec",b:"b-fast"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:"Strides = smooth acceleration, not full sprint · drop incline to 0% during strides only"},
+  {day:"THU",dtype:"easy",title:"Easy run",km:4,min:34,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"4km",dur:"34 min",b:"b-easy"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:"Active recovery after Tuesday strides — keep it easy"},
+  {day:"SAT",dtype:"long",title:"Long run",km:6,min:51,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Long run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"6km",dur:"51 min",b:"b-long"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.5km",dur:"7 min",b:"b-rest"},
+  ],tip:"6km non-stop — if you can hold a conversation throughout, pace is correct"},
+]},
+{w:3,label:"W3",type:"base",sessions:[
+  {day:"MON",dtype:"easy",title:"Easy run",km:4,min:34,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"4km",dur:"34 min",b:"b-easy"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:""},
+  {day:"TUE",dtype:"tempo",title:"Tempo run",km:4,min:33,steps:[
+    {n:"Warmup jog",spd:"6.5 km/h",pace:"9:13/km",inc:"1%",dist:"1km",dur:"9 min",b:"b-rest"},
+    {n:"Tempo",spd:"8.5 km/h",pace:"7:03/km",inc:"1%",dist:"2km",dur:"14 min",b:"b-tempo"},
+    {n:"Cooldown jog",spd:"6.5 km/h",pace:"9:13/km",inc:"1%",dist:"1km",dur:"9 min",b:"b-rest"},
+  ],tip:"First tempo — should feel 'comfortably hard' · able to say 2–3 words but not full sentences"},
+  {day:"THU",dtype:"easy",title:"Easy run",km:4,min:34,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"4km",dur:"34 min",b:"b-easy"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:""},
+  {day:"SAT",dtype:"long",title:"Long run",km:7,min:60,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Long run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"7km",dur:"60 min",b:"b-long"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.5km",dur:"7 min",b:"b-rest"},
+  ],tip:""},
+]},
+{w:4,label:"W4 ♻",type:"recovery",sessions:[
+  {day:"MON",dtype:"easy",title:"Easy run (recovery)",km:3,min:26,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"3km",dur:"26 min",b:"b-easy"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:"Recovery week — drop volume 30% · body adapts and gets stronger during rest"},
+  {day:"TUE",dtype:"easy",title:"Easy + Strides",km:3,min:30,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"3km",dur:"26 min",b:"b-easy"},
+    {n:"Strides ×4",spd:"10.0 km/h",pace:"6:00/km",inc:"0%",dist:"50m ×4",dur:"~3 min",b:"b-fast"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:""},
+  {day:"THU",dtype:"easy",title:"Easy run",km:3,min:26,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"3km",dur:"26 min",b:"b-easy"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:""},
+  {day:"SAT",dtype:"long",title:"Long run",km:5,min:43,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Long run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"5km",dur:"43 min",b:"b-long"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.5km",dur:"7 min",b:"b-rest"},
+  ],tip:""},
+]},
+{w:5,label:"W5",type:"build",sessions:[
+  {day:"MON",dtype:"easy",title:"Easy run",km:5,min:43,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"5km",dur:"43 min",b:"b-easy"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:""},
+  {day:"TUE",dtype:"interval",title:"Interval",km:5,min:38,steps:[
+    {n:"Warmup jog",spd:"6.5 km/h",pace:"9:13/km",inc:"1%",dist:"1km",dur:"9 min",b:"b-rest"},
+    {n:"Fast ×6",spd:"9.5 km/h",pace:"6:19/km",inc:"1%",dist:"~160m ×6",dur:"1 min ×6",b:"b-interval"},
+    {n:"Recovery jog",spd:"6.0 km/h",pace:"10:00/km",inc:"0%",dist:"—",dur:"90 sec between",b:"b-rest"},
+    {n:"Cooldown jog",spd:"6.5 km/h",pace:"9:13/km",inc:"1%",dist:"1km",dur:"9 min",b:"b-rest"},
+  ],tip:"Alternate: fast 9.5 for 1 min → drop to 6.0 for 90 sec → repeat 6x · manual speed change on treadmill"},
+  {day:"THU",dtype:"easy",title:"Easy run",km:5,min:43,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"5km",dur:"43 min",b:"b-easy"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:""},
+  {day:"SAT",dtype:"long",title:"Long run",km:8,min:69,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Long run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"8km",dur:"69 min",b:"b-long"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.5km",dur:"7 min",b:"b-rest"},
+  ],tip:"First 8km — if you finish this, you're 80% ready for race day"},
+]},
+{w:6,label:"W6 💪",type:"build",sessions:[
+  {day:"MON",dtype:"easy",title:"Easy run",km:5,min:43,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"5km",dur:"43 min",b:"b-easy"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:""},
+  {day:"TUE",dtype:"tempo",title:"Tempo run (long)",km:6,min:46,steps:[
+    {n:"Warmup jog",spd:"6.5 km/h",pace:"9:13/km",inc:"1%",dist:"1km",dur:"9 min",b:"b-rest"},
+    {n:"Tempo",spd:"8.5 km/h",pace:"7:03/km",inc:"1%",dist:"4km",dur:"28 min",b:"b-tempo"},
+    {n:"Cooldown jog",spd:"6.5 km/h",pace:"9:13/km",inc:"1%",dist:"1km",dur:"9 min",b:"b-rest"},
+  ],tip:"Peak workout of the entire plan — 4km tempo · if you finish strong, race day will feel easier"},
+  {day:"THU",dtype:"easy",title:"Easy run",km:5,min:43,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"5km",dur:"43 min",b:"b-easy"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:""},
+  {day:"SAT",dtype:"long",title:"Long run 10K 🎯",km:10,min:86,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Long run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"10km",dur:"86 min",b:"b-long"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.5km",dur:"7 min",b:"b-rest"},
+  ],tip:"Run full 10K on treadmill before race — finishing this = 100% ready"},
+]},
+{w:7,label:"W7",type:"taper",sessions:[
+  {day:"MON",dtype:"easy",title:"Easy run",km:4,min:34,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"4km",dur:"34 min",b:"b-easy"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:"Taper starts — reduce km but keep same pace · legs will feel fresh by race day"},
+  {day:"TUE",dtype:"interval",title:"Interval (short)",km:4,min:30,steps:[
+    {n:"Warmup jog",spd:"6.5 km/h",pace:"9:13/km",inc:"1%",dist:"1km",dur:"9 min",b:"b-rest"},
+    {n:"Fast ×4",spd:"9.5 km/h",pace:"6:19/km",inc:"1%",dist:"~160m ×4",dur:"1 min ×4",b:"b-interval"},
+    {n:"Recovery jog",spd:"6.0 km/h",pace:"10:00/km",inc:"0%",dist:"—",dur:"90 sec between",b:"b-rest"},
+    {n:"Cooldown jog",spd:"6.5 km/h",pace:"9:13/km",inc:"1%",dist:"1km",dur:"9 min",b:"b-rest"},
+  ],tip:"Reduced from 6 sets to 4 — just reminding muscles how to run fast before race"},
+  {day:"THU",dtype:"easy",title:"Easy run",km:3,min:26,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"3km",dur:"26 min",b:"b-easy"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:"Short and easy — saving energy for race day"},
+  {day:"SAT",dtype:"long",title:"Medium run",km:7,min:60,steps:[
+    {n:"Warmup walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Run",spd:"7.0 km/h",pace:"8:34/km",inc:"1%",dist:"7km",dur:"60 min",b:"b-long"},
+    {n:"Cooldown walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.5km",dur:"7 min",b:"b-rest"},
+  ],tip:"Last long run before race — keep it comfortable, don't push"},
+]},
+{w:8,label:"Race 🏁",type:"race",sessions:[
+  {day:"MON",dtype:"easy",title:"Easy jog",km:3,min:26,steps:[
+    {n:"Walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.5km",dur:"6 min",b:"b-rest"},
+    {n:"Easy jog",spd:"7.0 km/h",pace:"8:34/km",inc:"0%",dist:"3km",dur:"26 min",b:"b-easy"},
+    {n:"Walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:"Just keep legs moving — no effort at all"},
+  {day:"TUE",dtype:"easy",title:"Easy jog (very short)",km:2,min:17,steps:[
+    {n:"Walk",spd:"5.0 km/h",pace:"12:00/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+    {n:"Easy jog",spd:"7.0 km/h",pace:"8:34/km",inc:"0%",dist:"2km",dur:"17 min",b:"b-easy"},
+    {n:"Walk",spd:"4.5 km/h",pace:"13:20/km",inc:"0%",dist:"0.3km",dur:"4 min",b:"b-rest"},
+  ],tip:"Last run before race — very short, very easy"},
+  {day:"THU",dtype:"rest",title:"Full REST",km:0,min:0,steps:[
+    {n:"Complete rest",spd:"—",pace:"—",inc:"—",dist:"—",dur:"All day",b:"b-rest"},
+    {n:"Light stretching",spd:"—",pace:"—",inc:"—",dist:"—",dur:"10–15 min",b:"b-rest"},
+  ],tip:"No running — eat well, sleep early, hydrate"},
+  {day:"SAT 19 Jul",dtype:"long",title:"🏁 RACE DAY 10K",km:10,min:70,steps:[
+    {n:"Wake up + light carb meal",spd:"—",pace:"—",inc:"—",dist:"—",dur:"90 min before start",b:"b-rest"},
+    {n:"Warmup walk/jog",spd:"—",pace:"—",inc:"—",dist:"1–2km",dur:"10–15 min",b:"b-rest"},
+    {n:"Race 10K",spd:"8.5 km/h",pace:"7:03/km",inc:"course",dist:"10km",dur:"~70 min",b:"b-long"},
+  ],tip:"Start km 1 at 8.0 km/h (7:30/km) — slower than target · most beginners blow up by going out too fast"},
+]},
+]
+
+const tabsEl=document.getElementById('tabs')
+const sessionsEl=document.getElementById('sessions')
+const typeClass={base:'',recovery:'recovery-tab',build:'',taper:'',race:'race-tab'}
+
+plan.forEach((wk,i)=>{
+  const tab=document.createElement('button')
+  tab.className='wk-tab '+(typeClass[wk.type]||'')+(i===1?' active':'')
+  tab.textContent=wk.label
+  tab.onclick=()=>{
+    document.querySelectorAll('.wk-tab').forEach(t=>t.classList.remove('active'))
+    document.querySelectorAll('.session-area').forEach(s=>s.classList.remove('active'))
+    tab.classList.add('active')
+    document.getElementById('sa'+i).classList.add('active')
+  }
+  tabsEl.appendChild(tab)
+
+  const area=document.createElement('div')
+  area.className='session-area'+(i===1?' active':'')
+  area.id='sa'+i
+
+  wk.sessions.forEach(s=>{
+    const card=document.createElement('div')
+    card.className='session-card'
+    const summary=s.km>0?`${s.km} km · ~${s.min} min`:''
+    card.innerHTML=`<div class="sc-header"><span class="sc-day ${s.dtype}">${s.day}</span><span class="sc-title">${s.title}</span><span class="sc-summary">${summary}</span></div>`
+    const body=document.createElement('div')
+    body.className='sc-body'
+    const rows=s.steps.map(st=>`<tr>
+      <td><span class="step-name">${st.n}</span></td>
+      <td><span class="badge ${st.b}">${st.spd}</span></td>
+      <td style="color:#555;font-size:11px">${st.pace}</td>
+      <td style="color:#555">${st.inc}</td>
+      <td style="color:#555">${st.dist}</td>
+      <td style="color:#555">${st.dur}</td>
+    </tr>`).join('')
+    body.innerHTML=`<table><thead><tr><th>Phase</th><th>Speed</th><th>Pace</th><th>Incline</th><th>Distance</th><th>Time</th></tr></thead><tbody>${rows}</tbody></table>`
+    if(s.tip){
+      const tip=document.createElement('div')
+      tip.className='tip-box'
+      tip.textContent='💡 '+s.tip
+      body.appendChild(tip)
+    }
+    card.appendChild(body)
+    area.appendChild(card)
+  })
+  sessionsEl.appendChild(area)
+})
+</script>
+</body>
+</html>
